@@ -14,6 +14,8 @@ class DataProcessor():
         except IOError as e:
             raise Exception("Failed to load %s: %s" % (path, e))
 
+        #since we always want lowercase:
+        df["text"] = df["text"].str.lower()
         self.full_dataset = df.loc[:]
         return self.full_dataset
 
