@@ -3,7 +3,7 @@ import numpy as np
 from data_processor import DataProcessor
 from models.svc import SVC
 
-processor = DataProcessor(filename="./data/unprocessed/test_data.csv")
+processor = DataProcessor(filename="./data/unprocessed/combined_data_from_labs.csv")
 processor.load_csv()
 train,val,test= processor.split_data(frac={ "train": 0.6,"val": 0.2,"test": 0.2 })
 
