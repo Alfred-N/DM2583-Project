@@ -1,5 +1,6 @@
 import torch.nn as nn
 from transformers import DistilBertModel
+import torch
 
 class DistilBertForSequenceClassification(nn.Module):
     def __init__(self, config):
@@ -22,5 +23,6 @@ class DistilBertForSequenceClassification(nn.Module):
         pooled_output = self.pre_classifier(pooled_output)   
         pooled_output = nn.ReLU()(pooled_output)             
         pooled_output = self.dropout(pooled_output)        
-        logits = self.classifier(pooled_output) 
+        logits = self.classifier(pooled_output)
+        # sig = torch.sigmoid(logits)
         return logits

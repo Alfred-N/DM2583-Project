@@ -19,7 +19,7 @@ class DistilBERT(ModelInterface):
     val_dl: DataLoader
     test_dl: DataLoader
 
-    def __init__(self, train_data, val_data, test_data, batch_size=16):
+    def __init__(self, train_data, val_data, test_data, batch_size=16, max_seq_len=256):
         super(DistilBERT, self).__init__(train_data, val_data, test_data)
         print("Creating model ...")
         self.config=DistilBertConfig(   vocab_size_or_config_json_file=32000, 
@@ -28,9 +28,9 @@ class DistilBERT(ModelInterface):
                                         intermediate_size=3072)
         print("Loading sequences datasets ...")
         self.model = DistilBertForSequenceClassification(config=self.config)
-        train= SequenceDataset(self.train_df["text"].values,self.train_df["one_hot_score"].values)
-        val= SequenceDataset(self.val_df["text"].values,self.val_df["one_hot_score"].values)
-        test= SequenceDataset(self.test_df["text"].values,self.test_df["one_hot_score"].values)
+        train= SequenceDataset(self.train_df["text"].values,self.train_df["one_hot_score"].values,max_seq_length=max_seq_len)
+        val= SequenceDataset(self.val_df["text"].values,self.val_df["one_hot_score"].values,max_seq_length=max_seq_len)
+        test= SequenceDataset(self.test_df["text"].values,self.test_df["one_hot_score"].values,max_seq_length=max_seq_len)
         print("Loading data loaders ...")
         self.train_dl = DataLoader(train, batch_size=batch_size, shuffle=False)
         self.val_dl = DataLoader(val, batch_size=batch_size, shuffle=False)
@@ -43,10 +43,15 @@ class DistilBERT(ModelInterface):
         
 
     def train(self, n_epochs=1, save_model=True):
-        max_lr = 0.1
-        min_lr = 3e-5
+        max_lr = 1e-4
+        min_lr = 1e-5
+        step_size=np.ceil(len(self.train_dl)/2)
+        # step_size=1
         optimizer = torch.optim.Adam(self.model.parameters(),min_lr)
-        scheduler = lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
+        scheduler = lr_scheduler.CyclicLR(optimizer,base_lr=min_lr,max_lr=max_lr,
+                                step_size_up=step_size, step_size_down=step_size, mode="triangular2",
+                                cycle_momentum=False)
+        # scheduler = lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=0.1)
         # scheduler = lr_scheduler.CosineAnnealingLR(optimizer, n_epochs*len(self.train_dl), 
         #                                 eta_min=min_lr, last_epoch=-1, verbose=False)
         criterion = nn.BCEWithLogitsLoss()
@@ -69,13 +74,13 @@ class DistilBERT(ModelInterface):
                 labels = labels.to(self.device)
 
                 optimizer.zero_grad()
-                torch.set_grad_enabled(True)
-                outputs = self.model(inputs)
-                loss = criterion(outputs, labels.float())
-                # loss = criterion(outputs, labels)
-                loss.backward()
-                optimizer.step()
-
+                with torch.set_grad_enabled(True):
+                    outputs = self.model(inputs)
+                    loss = criterion(outputs, labels.float())
+                    # loss = criterion(outputs, labels)
+                    loss.backward()
+                    optimizer.step()
+                    scheduler.step()
                 tot_loss+=loss.item()
                 moving_avg_loss = (moving_avg_loss + loss.item())/2.0
                 train_avg_loss_list.append(moving_avg_loss)
@@ -84,11 +89,13 @@ class DistilBERT(ModelInterface):
                 train_acc += (predictions == actuals).sum()
                 
                 msg = f"Step: {it}/" + str(len(self.train_dl)) + " Loss = " + str(moving_avg_loss)
-                tqdm.write(msg)
+                # tqdm.write(msg)
                 if it%10==0:
                     tqdm.write(msg)
+                    msg= "LR="+str(scheduler.get_last_lr()[0])
+                    tqdm.write(msg)
             
-            scheduler.step()
+            
             train_acc = train_acc/len(self.train_df["score"].values)
             train_loss_list.append(tot_loss)
             train_acc_list.append(train_acc)
@@ -99,9 +106,10 @@ class DistilBERT(ModelInterface):
             for it, (inputs, labels) in enumerate(tqdm(self.val_dl)):                
                 inputs = inputs.to(self.device)
                 labels = labels.to(self.device)
-                torch.set_grad_enabled(False)
-                outputs = self.model(inputs)
-                loss = criterion(outputs, labels.float())
+                with torch.no_grad():
+                    outputs = self.model(inputs)
+                    outputs = torch.sigmoid(outputs)
+                    loss = criterion(outputs, labels.float())
                 # loss = criterion(outputs, labels)
                 val_loss+=loss.item()
                 predictions = torch.argmax(outputs,dim=1).cpu().detach().numpy()
@@ -130,10 +138,26 @@ class DistilBERT(ModelInterface):
 
 
     def test(self):
-        test_loss=None
-        test_accuracy=None
-        test_confusion_matrix = None
-        return test_loss, test_accuracy, test_confusion_matrix
+        predictions = []
+        test_acc=0.0
+        for it, (inputs, labels) in enumerate(tqdm(self.test_dl)):
+            inputs = inputs.to(self.device)
+            labels = labels.to(self.device)
+            with torch.no_grad():
+                outputs = self.model(inputs)
+                outputs = torch.sigmoid(outputs)
+                predictions = torch.argmax(outputs,dim=1).cpu().detach().numpy()
+                actuals = torch.argmax(labels,dim=1).cpu().detach().numpy()
+                test_acc += (predictions == actuals).sum()
+        test_acc=test_acc/len(self.test_df["score"].values)
+        return predictions, test_acc
     
     def classify_sentiment(self, unlabelled_data):
         pass
+
+    def load_from_state_dict(self, file=""):
+        try:
+            state_dict = torch.load(file)
+        except IOError as e:
+            raise Exception("Failed to load %s: %s" % (file, e))
+        self.model.load_state_dict(state_dict)

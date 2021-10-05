@@ -2,6 +2,6 @@
 __pycache__
 models\__pycache__
 test.py
-results/distilbert/smooth_loss_1_epoch.png
 print_architecture.py
-models/saved_weights/distilbert_epoch_0_20211005_1050.pth
+models/saved_weights
+results
