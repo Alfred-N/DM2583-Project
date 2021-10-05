@@ -19,11 +19,18 @@ class DataProcessor():
         self.full_dataset = df.loc[:]
         return self.full_dataset
 
-    def reformat_data(self):
+    def reformat_data(self, label_dim=2):
         """ Reformat data into csv containing one "score" column and one "text" column.
-            Might have to be multiple functions depending on sources format
+            Might have to be multiple functions depending on source format
+            If label_dim>=1, also create a column with one-hot encodings of the labels
         """
-        return self.full_dataset
+        data = self.full_dataset
+        if label_dim==2:
+            #[0,1] means positive, [1,0] means negative
+            data["one_hot_score"] = data["score"].apply(lambda x: [0,1] if x==1 else [1,0])
+        self.full_dataset=data
+
+
 
     def split_data(self, frac={"train": 0.6, "val": 0.2, "test": 0.2}):
         if frac['train'] + frac['val'] + frac['test'] != 1.0:
@@ -36,3 +43,5 @@ class DataProcessor():
         val_df = self.full_dataset.loc[train_cutoff:val_cutoff,:]
         test_df = self.full_dataset.loc[val_cutoff:,:]
         return train_df, val_df, test_df
+
+    

@@ -33,7 +33,7 @@ class ModelInterface():
         val_confusion_matrix = None
         return train_loss, val_loss, train_accuracy, val_accuracy, train_confusion_matrix, val_confusion_matrix
 
-    def eval(self):
+    def test(self):
         """[summary]
 
         Returns
