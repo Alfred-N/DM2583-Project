@@ -11,6 +11,7 @@ from torch.optim import lr_scheduler
 from datetime import datetime
 import os
 from tqdm import tqdm
+from data_processor import DataProcessor
 
 class DistilBERT(ModelInterface):
     model: DistilBertForSequenceClassification
@@ -23,9 +24,11 @@ class DistilBERT(ModelInterface):
         super(DistilBERT, self).__init__(train_data, val_data, test_data)
         print("Creating model ...")
         self.config=DistilBertConfig(   vocab_size_or_config_json_file=32000, 
-                                        hidden_size=768,dropout=0.1,num_labels=2,
+                                        hidden_size=768,dropout=0.1,num_labels=3,
                                         num_hidden_layers=12, num_attention_heads=12, 
                                         intermediate_size=3072)
+        self.max_seq_len=max_seq_len
+        self.batch_size=batch_size
         print("Loading sequences datasets ...")
         self.model = DistilBertForSequenceClassification(config=self.config)
         train= SequenceDataset(self.train_df["text"].values,self.train_df["one_hot_score"].values,max_seq_length=max_seq_len)
@@ -51,11 +54,7 @@ class DistilBERT(ModelInterface):
         scheduler = lr_scheduler.CyclicLR(optimizer,base_lr=min_lr,max_lr=max_lr,
                                 step_size_up=step_size, step_size_down=step_size, mode="triangular2",
                                 cycle_momentum=False)
-        # scheduler = lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=0.1)
-        # scheduler = lr_scheduler.CosineAnnealingLR(optimizer, n_epochs*len(self.train_dl), 
-        #                                 eta_min=min_lr, last_epoch=-1, verbose=False)
         criterion = nn.BCEWithLogitsLoss()
-        # criterion = nn.CrossEntropyLoss()
         print("Training ...")
         train_loss_list=[]
         train_avg_loss_list=[]
@@ -77,22 +76,21 @@ class DistilBERT(ModelInterface):
                 with torch.set_grad_enabled(True):
                     outputs = self.model(inputs)
                     loss = criterion(outputs, labels.float())
-                    # loss = criterion(outputs, labels)
                     loss.backward()
                     optimizer.step()
                     scheduler.step()
                 tot_loss+=loss.item()
-                moving_avg_loss = (moving_avg_loss + loss.item())/2.0
+                moving_avg_loss = 0.8*moving_avg_loss + 0.2*loss.item()
                 train_avg_loss_list.append(moving_avg_loss)
                 predictions = torch.argmax(outputs,dim=1).cpu().detach().numpy()
                 actuals = torch.argmax(labels,dim=1).cpu().detach().numpy()
                 train_acc += (predictions == actuals).sum()
                 
                 msg = f"Step: {it}/" + str(len(self.train_dl)) + " Loss = " + str(moving_avg_loss)
-                # tqdm.write(msg)
+
                 if it%10==0:
                     tqdm.write(msg)
-                    msg= "LR="+str(scheduler.get_last_lr()[0])
+                    msg= "LR="+str(round(scheduler.get_last_lr()[0],2))
                     tqdm.write(msg)
             
             
@@ -110,7 +108,7 @@ class DistilBERT(ModelInterface):
                     outputs = self.model(inputs)
                     outputs = torch.sigmoid(outputs)
                     loss = criterion(outputs, labels.float())
-                # loss = criterion(outputs, labels)
+                
                 val_loss+=loss.item()
                 predictions = torch.argmax(outputs,dim=1).cpu().detach().numpy()
                 actuals = torch.argmax(labels,dim=1).cpu().detach().numpy()
@@ -121,7 +119,6 @@ class DistilBERT(ModelInterface):
             val_loss_list.append(val_loss)
             msg = str(val_acc)
             tqdm.write(msg)
-
 
             if save_model:
                 print("Saving model ...")
@@ -152,12 +149,44 @@ class DistilBERT(ModelInterface):
         test_acc=test_acc/len(self.test_df["score"].values)
         return predictions, test_acc
     
-    def classify_sentiment(self, unlabelled_data):
-        pass
+    def classify_sentiment(self, unlabelled_data, save_csv=False):
+        print("Classifying sentiment ...")
+        unlabelled_df = unlabelled_data
+        unlabelled_df["score"] = np.NaN
+        seq_data= SequenceDataset(unlabelled_df["text"].values,unlabelled_df["one_hot_score"].values,max_seq_length=self.max_seq_len)
+        unlabelled_dl = DataLoader(seq_data, batch_size=self.batch_size, shuffle=False)
+        predictions = np.array([])
+        for it, (inputs, _) in enumerate(tqdm(unlabelled_dl)):
+            inputs = inputs.to(self.device)
+            with torch.no_grad():
+                outputs = self.model(inputs)
+                outputs = torch.sigmoid(outputs)
+                pred = torch.argmax(outputs,dim=1).cpu().detach().numpy()
+                predictions = np.append(predictions,pred)
+
+        print("Converting predictions to [-1,0,1] encoding ...")
+        f = np.vectorize(lambda x: DataProcessor.predictions_to_idx(x)) 
+        new_predictions =  f(predictions)
+        unlabelled_df["score"].values[0:len(new_predictions)] = new_predictions
+
+        if "one_hot_score" in unlabelled_df.columns:
+            unlabelled_df.drop(columns="one_hot_score", inplace=True)
+
+        if save_csv:
+            print("Saving predicted sentiments ...")
+            time = datetime.now().strftime("%Y%m%d_%H%M")
+            save_file=f"results/distilbert/sentiments_" +  time + ".csv"
+            try:
+                mode = 'a' if os.path.exists(save_file) else 'wb'
+                with open(save_file,mode) as f:
+                    unlabelled_df.to_csv(save_file)
+            except IOError as e:
+                raise Exception("Failed to save to %s: %s" % (save_file, e))   
+        return unlabelled_df
 
     def load_from_state_dict(self, file=""):
         try:
-            state_dict = torch.load(file)
+            state_dict = torch.load(file,map_location=torch.device('cpu'))
         except IOError as e:
             raise Exception("Failed to load %s: %s" % (file, e))
         self.model.load_state_dict(state_dict)

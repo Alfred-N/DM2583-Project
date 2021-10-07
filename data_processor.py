@@ -6,6 +6,8 @@ class DataProcessor():
 
     def __init__(self, filename):
         self.filename = filename
+        self.load_csv()
+        self.get_onehot_encoding()
 
     def load_csv(self):
         path=self.filename
@@ -14,20 +16,18 @@ class DataProcessor():
         except IOError as e:
             raise Exception("Failed to load %s: %s" % (path, e))
 
-        #since we always want lowercase:
         df["text"] = df["text"].str.lower()
         self.full_dataset = df.loc[:]
         return self.full_dataset
-
-    def reformat_data(self, label_dim=2):
-        """ Reformat data into csv containing one "score" column and one "text" column.
-            Might have to be multiple functions depending on source format
-            If label_dim>=1, also create a column with one-hot encodings of the labels
+    
+    def preprocess_lab_data(self):
+        """ Reformat lab data from [0,1] encoding to [-1,1] encoding       
         """
+        self.full_dataset["score"] = self.full_dataset["score"].apply(lambda x: -1 if x==0 else 1)
+        
+    def get_onehot_encoding(self):        
         data = self.full_dataset
-        if label_dim==2:
-            #[0,1] means positive, [1,0] means negative
-            data["one_hot_score"] = data["score"].apply(lambda x: [0,1] if x==1 else [1,0])
+        data["one_hot_score"] = data["score"].apply(lambda x: self.index_to_3D_onehot(x))
         self.full_dataset=data
 
 
@@ -43,5 +43,22 @@ class DataProcessor():
         val_df = self.full_dataset.loc[train_cutoff:val_cutoff,:]
         test_df = self.full_dataset.loc[val_cutoff:,:]
         return train_df, val_df, test_df
+
+    def index_to_3D_onehot(self,idx):
+        if idx==-1:
+            return [1,0,0]
+        elif idx == 0:
+            return [0,1,0]
+        elif idx == 1:
+            return [0,0,1]
+    
+    @staticmethod
+    def predictions_to_idx(idx):
+        if idx==0:
+            return -1
+        elif idx == 1:
+            return 0
+        elif idx == 2:
+            return 1
 
     

@@ -30,23 +30,30 @@ import matplotlib.pyplot as plt
 # print(LSTM)
 
 #------------------------------DistilBERT----------------------------
-processor = DataProcessor(filename="./data/unprocessed/combined_data_from_labs.csv")
-processor.load_csv()
-processor.reformat_data(label_dim=2)
+processor = DataProcessor(filename="./data/processed/lab_data_new_encoding.csv")
 train,val,test= processor.split_data(frac={"train": 0.6,"val": 0.2,"test": 0.2 })
 model = DistilBERT(train,val,test, batch_size=16, max_seq_len=256)
-# result = model.train(n_epochs=3)
-# train_loss_list, train_avg_loss_list, val_loss_list, train_acc_list, val_acc_list = result
-# plt.plot(train_avg_loss_list)
-# plt.ylabel("Loss")
-# plt.xlabel("Step")
-# plt.title("Smooth loss")
-# plt.savefig("results/distilbert/smooth_loss_3_epochs.png")
-# print("Train acc = ",train_acc_list)
-# print("Val acc = ",val_acc_list)
+##Train
+n_epochs=10
+result = model.train(n_epochs=n_epochs)
+train_loss_list, train_avg_loss_list, val_loss_list, train_acc_list, val_acc_list = result
+plt.plot(train_avg_loss_list)
+plt.ylabel("Loss")
+plt.xlabel("Step")
+plt.title("Smooth loss")
+plt.savefig(f"results/distilbert/smooth_loss_{n_epochs}_epochs.png")
+print("Train acc = ",train_acc_list)
+print("Val acc = ",val_acc_list)
 
-model.load_from_state_dict("models\saved_weights\distilbert_epoch_8_20211006_2225.pth")
-predictions, test_acc=model.test()
-print("test acc = ", test_acc)
-n_positive = train["score"].values.sum()
-print("Fraction postive tweets: ",n_positive/len(train["score"].values))
+##Test
+# model.load_from_state_dict("models\saved_weights\distilbert_epoch_2_20211007_1258.pth")
+# predictions, test_acc=model.test()
+# print("test acc = ", test_acc)
+# n_positive = train["score"].values.sum()
+# print("Fraction postive tweets: ",n_positive/len(train["score"].values))
+
+#Predict (unlabeled) Twitter data
+# model.load_from_state_dict("models\saved_weights\distilbert_epoch_2_20211007_1258.pth")
+# twitter_proc = DataProcessor(filename="./data/processed/lab_data_new_encoding.csv")
+# unlabelled_df = twitter_proc.full_dataset
+# predicted_df=model.classify_sentiment(unlabelled_df, save_csv=True)
