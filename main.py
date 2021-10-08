@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from helper_functions import plot_training_result, print_sentiment_distribution
 
 ###------------------------------SVC---------------------------------
-# processor = DataProcessor(filename="./data/unprocessed/combined_data_from_labs.csv")
+# processor = DataProcessor(filename="./data/processed/US_Airlines_Tweets_EVEN_DISTRIB.csv")
 # processor.load_csv()
 # train,val,test= processor.split_data(frac={"train": 0.6,"val": 0.2,"test": 0.2 })
 # model = SVC(train,val,test)
@@ -42,6 +42,7 @@ model = DistilBERT(train,val,test, batch_size=16, max_seq_len=256)
 n_epochs=10
 result = model.train(n_epochs=n_epochs)
 plot_training_result(result,n_epochs)
+
 
 ##Test
 # model.load_from_state_dict("models\saved_weights\distilbert_epoch_9_20211007_1346.pth")

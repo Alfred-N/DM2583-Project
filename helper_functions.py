@@ -9,6 +9,7 @@ def plot_training_result(result, n_epochs):
     plt.xlabel("Step")
     plt.title("Smooth loss")
     plt.savefig(f"results/distilbert/smooth_loss_{n_epochs}_epochs.png")
+    plt.show()
 
     plt.plot(train_acc_list, label="Training accuracy")
     plt.plot(val_acc_list, label="Validation accuracy")
@@ -16,6 +17,8 @@ def plot_training_result(result, n_epochs):
     plt.ylabel("Accuracy (%)")
     plt.xlabel("Num epochs")
     plt.savefig(f"results/distilbert/accuracy_{n_epochs}_epochs.png")
+    plt.show()
+    
     print("Train acc = ",train_acc_list)
     print("Val acc = ",val_acc_list)
 
