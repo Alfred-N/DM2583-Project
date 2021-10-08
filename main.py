@@ -6,7 +6,7 @@ from models.lstm import LSTM
 from models.bert_model import DistilBERT
 import torch
 import matplotlib.pyplot as plt
-from helper_functions import plot_training_result
+from helper_functions import plot_training_result, print_sentiment_distribution
 
 ###------------------------------SVC---------------------------------
 # processor = DataProcessor(filename="./data/unprocessed/combined_data_from_labs.csv")
@@ -32,8 +32,10 @@ from helper_functions import plot_training_result
 # print(LSTM)
 
 #------------------------------DistilBERT----------------------------
-processor = DataProcessor(filename="data/processed/US_Airlines_Tweets.csv")
+processor = DataProcessor(filename="data/processed/US_Airlines_Tweets_EVEN_DISTRIB.csv")
+processor.preprocess_US_Airlines_data()
 processor.get_onehot_encoding()
+print_sentiment_distribution(processor.full_dataset, plot=False)
 train,val,test= processor.split_data(frac={"train": 0.6,"val": 0.2,"test": 0.2 })
 model = DistilBERT(train,val,test, batch_size=16, max_seq_len=256)
 #Train
@@ -42,11 +44,11 @@ result = model.train(n_epochs=n_epochs)
 plot_training_result(result,n_epochs)
 
 ##Test
-# model.load_from_state_dict("models\saved_weights\distilbert_epoch_9_20211007_1346.pth")
-# predictions, test_acc=model.test()
-# print("test acc = ", test_acc)
-# n_positive = train["score"].values.sum()
-# print("Fraction postive tweets: ",n_positive/len(train["score"].values))
+model.load_from_state_dict("models\saved_weights\distilbert_epoch_9_20211007_1346.pth")
+predictions, test_acc=model.test()
+print("test acc = ", test_acc)
+n_positive = train["score"].values.sum()
+print("Fraction postive tweets: ",n_positive/len(train["score"].values))
 
 #Predict (unlabeled) Twitter data
 # model.load_from_state_dict("models\saved_weights\distilbert_epoch_2_20211007_1258.pth")

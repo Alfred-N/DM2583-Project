@@ -76,4 +76,21 @@ class DataProcessor():
         elif sentiment_str == "positive":
             return 1
 
+    def get_even_distribution(self):
+        data = self.full_dataset
+        freqs= pd.DataFrame()
+        freqs=data.groupby("score",as_index=False).size().rename(columns={"size": "count"})
+        freqs["freq"] = freqs["count"]/(data.index.values[-1] +1)
+
+        min_n_samples=np.min(freqs["count"].values)
+        df_list=[]
+        for score in freqs["score"].values:
+            df = data[lambda x: x.score == score].reset_index(drop=True)
+            df = df.loc[0:min_n_samples,:]
+            df_list.append(df)
+        result = pd.concat(df_list).reset_index(drop=True)
+        self.full_dataset = result.sample(frac=1).reset_index(drop=True)
+        return self.full_dataset
+    
+    
     
