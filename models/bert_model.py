@@ -68,7 +68,9 @@ class DistilBERT(ModelInterface):
             moving_avg_loss = 0.0
             tot_loss = 0.0
             train_acc = 0.0
-            for it, (inputs, labels) in enumerate(tqdm(self.train_dl)):
+
+            iterator = tqdm(enumerate(self.train_dl),total=len(self.train_dl))
+            for it, (inputs, labels) in iterator:
                 inputs = inputs.to(self.device)
                 labels = labels.to(self.device)
 
@@ -86,12 +88,9 @@ class DistilBERT(ModelInterface):
                 actuals = torch.argmax(labels,dim=1).cpu().detach().numpy()
                 train_acc += (predictions == actuals).sum()
                 
-                msg = f"Step: {it}/" + str(len(self.train_dl)) + " Loss = " + str(moving_avg_loss)
-                
-                if it%10==0:
-                    tqdm.write(msg)
-                    msg= "LR="+str(round(scheduler.get_last_lr()[0],2))
-                    tqdm.write(msg)
+                LR = scheduler.get_last_lr()[0]
+                msg = " Loss = " + str(round(moving_avg_loss,3)) + "  LR = " + "{:.3e}".format(LR)
+                iterator.set_description(msg)
             
             
             train_acc = train_acc/len(self.train_df["score"].values)
