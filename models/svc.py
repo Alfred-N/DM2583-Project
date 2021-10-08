@@ -59,8 +59,8 @@ class SVC(ModelInterface):
         else:
             print("Training ...")
             self.model.fit(self.train_arr,self.train_df["score"])
-            val_acc=self.model.score(self.train_arr, self.train_df["score"].values)
-            train_acc=self.model.score(self.val_arr, self.val_df["score"].values)
+            train_acc=self.model.score(self.train_arr, self.train_df["score"].values)
+            val_acc=self.model.score(self.val_arr, self.val_df["score"].values)
         
         if save_model:
             print("Saving model ...")

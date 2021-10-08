@@ -6,3 +6,4 @@ print_architecture.py
 models/saved_weights
 results
 test.py
+twitter_downloader.py
