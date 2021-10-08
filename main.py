@@ -1,11 +1,13 @@
 import pandas as pd
-# import numpy as np
+import numpy as np
 from data_processor import DataProcessor
 from models.svc import SVC
 from models.lstm import LSTM
 from models.bert_model import DistilBERT
 import torch
 import matplotlib.pyplot as plt
+from helper_functions import plot_training_result
+
 ###------------------------------SVC---------------------------------
 # processor = DataProcessor(filename="./data/unprocessed/combined_data_from_labs.csv")
 # processor.load_csv()
@@ -30,23 +32,17 @@ import matplotlib.pyplot as plt
 # print(LSTM)
 
 #------------------------------DistilBERT----------------------------
-processor = DataProcessor(filename="./data/processed/lab_data_new_encoding.csv")
+processor = DataProcessor(filename="data/processed/US_Airlines_Tweets.csv")
+processor.get_onehot_encoding()
 train,val,test= processor.split_data(frac={"train": 0.6,"val": 0.2,"test": 0.2 })
 model = DistilBERT(train,val,test, batch_size=16, max_seq_len=256)
-##Train
+#Train
 n_epochs=10
 result = model.train(n_epochs=n_epochs)
-train_loss_list, train_avg_loss_list, val_loss_list, train_acc_list, val_acc_list = result
-plt.plot(train_avg_loss_list)
-plt.ylabel("Loss")
-plt.xlabel("Step")
-plt.title("Smooth loss")
-plt.savefig(f"results/distilbert/smooth_loss_{n_epochs}_epochs.png")
-print("Train acc = ",train_acc_list)
-print("Val acc = ",val_acc_list)
+plot_training_result(result,n_epochs)
 
 ##Test
-# model.load_from_state_dict("models\saved_weights\distilbert_epoch_2_20211007_1258.pth")
+# model.load_from_state_dict("models\saved_weights\distilbert_epoch_9_20211007_1346.pth")
 # predictions, test_acc=model.test()
 # print("test acc = ", test_acc)
 # n_positive = train["score"].values.sum()

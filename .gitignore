@@ -4,3 +4,5 @@ models\__pycache__
 test.py
 print_architecture.py
 models/saved_weights
+results
+test.py

@@ -87,7 +87,7 @@ class DistilBERT(ModelInterface):
                 train_acc += (predictions == actuals).sum()
                 
                 msg = f"Step: {it}/" + str(len(self.train_dl)) + " Loss = " + str(moving_avg_loss)
-
+                
                 if it%10==0:
                     tqdm.write(msg)
                     msg= "LR="+str(round(scheduler.get_last_lr()[0],2))
