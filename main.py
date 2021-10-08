@@ -44,11 +44,11 @@ result = model.train(n_epochs=n_epochs)
 plot_training_result(result,n_epochs)
 
 ##Test
-model.load_from_state_dict("models\saved_weights\distilbert_epoch_9_20211007_1346.pth")
-predictions, test_acc=model.test()
-print("test acc = ", test_acc)
-n_positive = train["score"].values.sum()
-print("Fraction postive tweets: ",n_positive/len(train["score"].values))
+# model.load_from_state_dict("models\saved_weights\distilbert_epoch_9_20211007_1346.pth")
+# predictions, test_acc=model.test()
+# print("test acc = ", test_acc)
+# n_positive = train["score"].values.sum()
+# print("Fraction postive tweets: ",n_positive/len(train["score"].values))
 
 #Predict (unlabeled) Twitter data
 # model.load_from_state_dict("models\saved_weights\distilbert_epoch_2_20211007_1258.pth")
