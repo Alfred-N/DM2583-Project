@@ -24,7 +24,7 @@ class DistilBERT(ModelInterface):
         super(DistilBERT, self).__init__(train_data, val_data, test_data)
         print("Creating model ...")
         self.config=DistilBertConfig(   vocab_size_or_config_json_file=32000, 
-                                        hidden_size=768,dropout=0.1,num_labels=3,
+                                        hidden_size=768,dropout=0.2,num_labels=3,
                                         num_hidden_layers=12, num_attention_heads=12, 
                                         intermediate_size=3072)
         self.max_seq_len=max_seq_len
@@ -47,7 +47,7 @@ class DistilBERT(ModelInterface):
 
     def train(self, n_epochs=1, save_model=True):
         max_lr = 1e-4
-        min_lr = 1e-5
+        min_lr = 5e-6
         step_size=np.ceil(len(self.train_dl)/2)
         # step_size=1
         optimizer = torch.optim.Adam(self.model.parameters(),min_lr)
@@ -61,9 +61,9 @@ class DistilBERT(ModelInterface):
         val_loss_list=[]
         train_acc_list=[]
         val_acc_list=[]
-
-        self.model.train()
+        
         for epoch in range(n_epochs):
+            self.model.train(mode=True)
             print('Epoch {}/{}'.format(epoch+1, n_epochs))
             moving_avg_loss = 0.0
             tot_loss = 0.0
@@ -100,6 +100,7 @@ class DistilBERT(ModelInterface):
             tqdm.write("Validaiting ...")
             val_loss=0.0
             val_acc=0.0
+            self.model.train(mode=False)
             for it, (inputs, labels) in enumerate(tqdm(self.val_dl)):                
                 inputs = inputs.to(self.device)
                 labels = labels.to(self.device)
@@ -119,6 +120,7 @@ class DistilBERT(ModelInterface):
             msg = str(val_acc)
             tqdm.write(msg)
 
+
             if save_model:
                 print("Saving model ...")
                 time = datetime.now().strftime("%Y%m%d_%H%M")
@@ -134,6 +136,7 @@ class DistilBERT(ModelInterface):
 
 
     def test(self):
+        self.model.train(mode=False)
         predictions = []
         test_acc=0.0
         for it, (inputs, labels) in enumerate(tqdm(self.test_dl)):
@@ -185,7 +188,7 @@ class DistilBERT(ModelInterface):
 
     def load_from_state_dict(self, file=""):
         try:
-            state_dict = torch.load(file,map_location=torch.device('cpu'))
+            state_dict = torch.load(file)
         except IOError as e:
             raise Exception("Failed to load %s: %s" % (file, e))
         self.model.load_state_dict(state_dict)

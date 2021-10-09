@@ -32,24 +32,24 @@ from helper_functions import plot_training_result, print_sentiment_distribution
 # print(LSTM)
 
 #------------------------------DistilBERT----------------------------
-processor = DataProcessor(filename="data/processed/US_Airlines_Tweets_EVEN_DISTRIB.csv")
+data_dir="data/processed/"
+dataset="US_Airlines_Tweets_EVEN_DISTRIB"
+processor = DataProcessor(filename=data_dir+dataset+".csv")
 processor.preprocess_US_Airlines_data()
 processor.get_onehot_encoding()
 print_sentiment_distribution(processor.full_dataset, plot=False)
-train,val,test= processor.split_data(frac={"train": 0.6,"val": 0.2,"test": 0.2 })
+train,val,test= processor.split_data(frac={"train": 0.8,"val": 0.1,"test": 0.1 })
 model = DistilBERT(train,val,test, batch_size=16, max_seq_len=256)
+model.load_from_state_dict("models/saved_weights/distilbert_epoch_3_20211009_0635.pth")
 #Train
-n_epochs=10
-result = model.train(n_epochs=n_epochs)
-plot_training_result(result,n_epochs)
+# n_epochs=3
+# result = model.train(n_epochs=n_epochs)
+# plot_training_result(result,n_epochs+10, model="distilbert", dataset=dataset)
 
 
 ##Test
-# model.load_from_state_dict("models\saved_weights\distilbert_epoch_9_20211007_1346.pth")
-# predictions, test_acc=model.test()
-# print("test acc = ", test_acc)
-# n_positive = train["score"].values.sum()
-# print("Fraction postive tweets: ",n_positive/len(train["score"].values))
+predictions, test_acc=model.test()
+print("test acc = ", test_acc)
 
 #Predict (unlabeled) Twitter data
 # model.load_from_state_dict("models\saved_weights\distilbert_epoch_2_20211007_1258.pth")
