@@ -40,19 +40,21 @@ processor.get_onehot_encoding()
 print_sentiment_distribution(processor.full_dataset, plot=False)
 train,val,test= processor.split_data(frac={"train": 0.8,"val": 0.1,"test": 0.1 })
 model = DistilBERT(train,val,test, batch_size=16, max_seq_len=256)
-model.load_from_state_dict("models/saved_weights/distilbert_epoch_3_20211009_0635.pth")
+# model.load_from_state_dict("models/saved_weights/distilbert_epoch_3_20211009_0635.pth")
 #Train
 # n_epochs=3
 # result = model.train(n_epochs=n_epochs)
-# plot_training_result(result,n_epochs+10, model="distilbert", dataset=dataset)
+# plot_training_result(result,n_epochs, model="distilbert", dataset=dataset)
 
 
 ##Test
-predictions, test_acc=model.test()
-print("test acc = ", test_acc)
+# predictions, test_acc=model.test()
+# print("test acc = ", test_acc)
 
 #Predict (unlabeled) Twitter data
-# model.load_from_state_dict("models\saved_weights\distilbert_epoch_2_20211007_1258.pth")
-# twitter_proc = DataProcessor(filename="./data/processed/lab_data_new_encoding.csv")
-# unlabelled_df = twitter_proc.full_dataset
-# predicted_df=model.classify_sentiment(unlabelled_df, save_csv=True)
+model.load_from_state_dict("models/saved_weights/US_Airways_pretrained_on_Lab_data/distilbert_epoch_9_20211008_2333.pth")
+model.batch_size=256
+twitter_proc = DataProcessor(filename="data/unprocessed/Twitter/Twitter_2015_to_2021.csv")
+unlabelled_df = twitter_proc.full_dataset
+predicted_df=model.classify_sentiment(unlabelled_df, save_csv=True)
+print(predicted_df.head(-1))

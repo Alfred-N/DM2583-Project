@@ -155,6 +155,7 @@ class DistilBERT(ModelInterface):
         print("Classifying sentiment ...")
         unlabelled_df = unlabelled_data
         unlabelled_df["score"] = np.NaN
+        unlabelled_df["one_hot_score"] = pd.Series([np.NaN,np.NaN,np.NaN]*len(unlabelled_df.index.values))
         seq_data= SequenceDataset(unlabelled_df["text"].values,unlabelled_df["one_hot_score"].values,max_seq_length=self.max_seq_len)
         unlabelled_dl = DataLoader(seq_data, batch_size=self.batch_size, shuffle=False)
         predictions = np.array([])
@@ -177,7 +178,7 @@ class DistilBERT(ModelInterface):
         if save_csv:
             print("Saving predicted sentiments ...")
             time = datetime.now().strftime("%Y%m%d_%H%M")
-            save_file=f"results/distilbert/sentiments_" +  time + ".csv"
+            save_file=f"results/distilbert/Tweet_sentiments_" +  time + ".csv"
             try:
                 mode = 'a' if os.path.exists(save_file) else 'wb'
                 with open(save_file,mode) as f:
