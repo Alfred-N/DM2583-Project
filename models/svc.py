@@ -1,4 +1,5 @@
 from numpy.lib.npyio import save
+from torch._C import unify_type_list
 from models.model_api import ModelInterface
 import numpy as np
 import pandas as pd
@@ -82,6 +83,24 @@ class SVC(ModelInterface):
         test_acc = self.model.score(self.test_arr,self.test_df["score"])
         return predictions, test_acc
 
-    def classify_sentiment(self, unlabelled_data):
-        pass
+    def classify_sentiment(self, unlabelled_data, save_csv=False):
+        print("Vectorizing 1M tweets")
+        Tweet_arr = self.vectorizer.transform(unlabelled_data["text"]).toarray()
+        print("Predicting sentiments of 1M tweets ...")
+        new_predictions = self.model.predict(Tweet_arr)
+        sentiment_df=unlabelled_data.loc[:,["created_at","id","text"]]
+        sentiment_df["score"] = new_predictions
+        print(sentiment_df.head(-1))
+        if save_csv:
+            print("Saving predicted sentiments ...")
+            time = datetime.now().strftime("%Y%m%d_%H%M")
+            save_file=f"results/svc/Tweet_sentiments_" +  time + ".csv"
+            try:
+                mode = 'a' if os.path.exists(save_file) else 'wb'
+                with open(save_file,mode) as f:
+                    sentiment_df.to_csv(save_file)
+            except IOError as e:
+                raise Exception("Failed to save to %s: %s" % (save_file, e))
+
+        return sentiment_df
 

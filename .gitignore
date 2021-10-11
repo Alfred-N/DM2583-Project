@@ -8,3 +8,4 @@ results
 test.py
 twitter_downloader.py
 data/unprocessed/Twitter
+models/__pycache__/svc.cpython-37.pyc
