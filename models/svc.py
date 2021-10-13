@@ -1,6 +1,7 @@
 from numpy.lib.npyio import save
 from torch._C import unify_type_list
 from models.model_api import ModelInterface
+from helper_functions import plot_confusion_matrix
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -40,7 +41,7 @@ class SVC(ModelInterface):
         self.val_arr = self.vectorizer.transform(self.val_df["text"]).toarray()
         self.test_arr = self.vectorizer.transform(self.test_df["text"]).toarray()
 
-    def train(self, n_epochs=50, CV=False, verbose=0, save_model=False):
+    def train(self, n_epochs=50, CV=False, verbose=0, save_model=False, plot_matrix=False):
         #TODO: copy plot code from lab1,2 to plot confusion matrix and store them in /results/
         if CV is not False:
             print("Vectorizing CV dataset ...")
@@ -63,6 +64,13 @@ class SVC(ModelInterface):
             train_acc=self.model.score(self.train_arr, self.train_df["score"].values)
             val_acc=self.model.score(self.val_arr, self.val_df["score"].values)
         
+        if plot_matrix:
+          confusion_matrix = plot_confusion_matrix(self.val_df["score"], 
+          self.model.predict(self.val_arr), 
+          title="Confusion matrix of sentiments predicted by NBC", 
+          path="results/svc/confusion_eval.png")
+          confusion_matrix.show()
+
         if save_model:
             print("Saving model ...")
             time = datetime.now().strftime("%Y%m%d_%H%M")
@@ -76,8 +84,14 @@ class SVC(ModelInterface):
         
         return train_acc, val_acc
     
-    def test(self):
-        #TODO: copy plot code from lab1,2 to plot confusion matrix and store them in /results/
+    def test(self,plot_matrix=False):
+        if plot_matrix:
+          confusion_matrix = plot_confusion_matrix(self.test_df["score"], 
+          self.model.predict(self.test_arr), 
+          title="Confusion matrix of sentiments predicted by SVC", 
+          path="results/svc/confusion_test.png")
+          confusion_matrix.show()
+
         print("Testing model on the test set ...")
         predictions = self.model.predict(self.test_arr)
         test_acc = self.model.score(self.test_arr,self.test_df["score"])
