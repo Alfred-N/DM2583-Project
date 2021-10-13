@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
+from sklearn.metrics import confusion_matrix
 from matplotlib.collections import LineCollection
 from matplotlib.colors import ListedColormap, BoundaryNorm
 import matplotlib.dates as mdates
@@ -32,6 +33,40 @@ def plot_training_result(result, n_epochs, model="distilbert", dataset=""):
     
     print("Train acc = ",train_acc_list)
     print("Val acc = ",val_acc_list)
+
+def plot_confusion_matrix(df_true, df_predicted, title="Confusion matrix", path="results/confusion.png", cmap=plt.cm.PuBu):
+    df_confusion = confusion_matrix(df_true, df_predicted)
+    
+    plt.matshow(df_confusion, cmap=cmap)
+    #plt.title(title) TODO fix title being cut off
+    plt.colorbar()
+
+    tick_marks = np.arange(3)
+    sentiments = [-1,0,1]
+    plt.xticks(tick_marks, sentiments)
+    plt.yticks(tick_marks, sentiments)
+    
+    plt.ylabel("Actual")
+    plt.xlabel("Predicted")
+
+    plt.savefig(path)
+    plt.show()
+
+    return plt
+  
+def plot_data_distribution(df_sentiment, title="Distribution of sentiments"):
+    index = [1,2,3]
+    counts = df_sentiment.value_counts()
+    plt.bar(index,counts)
+    
+    plt.title(title)
+
+    plt.xticks(index,["Negative","Neutral","Positive"])
+    plt.ylabel("Counts of sentiment")
+    plt.xlabel("Sentiment")
+
+    plt.savefig("results/"+title+".png")
+    plt.show()
 
 def plot_testing_result(result):
     #TODO: add confusion matrix + plots
